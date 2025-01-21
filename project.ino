@@ -36,12 +36,17 @@ VOneMqttClient voneClient;
 unsigned long lastMsgTime = 0;
 
 int MinMoistureValue = 4095;
-int MaxMoistureValue = 2100;
+int MaxMoistureValue = 0;
 int MinMoisture = 0;
 int MaxMoisture = 100;
 int Moisture = 0;
 
 bool isRoofClosed = false;
+
+bool fanState = false;
+bool pumpState = false;
+bool ledState = false;
+int servoAngle = 0;
 
 void triggerActuator_callback(const char* actuatorDeviceId, const char* actuatorCommand) {
   Serial.print("Main received callback : ");
@@ -69,16 +74,17 @@ void triggerActuator_callback(const char* actuatorDeviceId, const char* actuator
   Serial.println(commandValue);
 
   if (String(actuatorDeviceId) == ServoActuator) {
-    int angle = (int)commandValue;
-    servo.write(angle);
-  } else if (String(actuatorDeviceId) == FanRelayActuator || 
-             String(actuatorDeviceId) == LEDActuator || 
-             String(actuatorDeviceId) == PumpRelayActuator) {
-    bool state = (bool)commandValue;
-    int pin = (String(actuatorDeviceId) == FanRelayActuator) ? FAN_RELAY :
-              (String(actuatorDeviceId) == LEDActuator) ? LED_PIN : PUMP_RELAY;
-    digitalWrite(pin, state ? HIGH : LOW);
-    Serial.println(state ? "Turning on" : "Turning off");
+    servoAngle = (int)commandValue;
+    servo.write(servoAngle);
+  } else if (String(actuatorDeviceId) == FanRelayActuator) {
+    fanState = (bool)commandValue;
+    digitalWrite(FAN_RELAY, fanState ? HIGH : LOW);
+  } else if (String(actuatorDeviceId) == LEDActuator) {
+    ledState = (bool)commandValue;
+    digitalWrite(LED_PIN, ledState ? HIGH : LOW);
+  } else if (String(actuatorDeviceId) == PumpRelayActuator) {
+    pumpState = (bool)commandValue;
+    digitalWrite(PUMP_RELAY, pumpState ? HIGH : LOW);
   } else {
     Serial.print("No actuator found : ");
     Serial.println(actuatorDeviceId);
@@ -161,32 +167,30 @@ void loop() {
     Moisture = map(moistureValue, MinMoistureValue, MaxMoistureValue, MinMoisture, MaxMoisture);
     
     Serial.printf("Moisture value: %d\n", moistureValue);
-    if (Moisture < 40) {
+    if (Moisture < 40 && !pumpState) {
       digitalWrite(PUMP_RELAY, HIGH);
       delay(1000);
-    } else {
+    } else if (Moisture >= 40 && !pumpState) {
       digitalWrite(PUMP_RELAY, LOW);
     }
     /* DHT11 */
     delay(10);
     float h = dht.readHumidity();
     float t = dht.readTemperature();
-    if (t > 32) {
+    if (t > 32 && !fanState) {
       digitalWrite(FAN_RELAY, HIGH);
-    } else {
+    } else if (t <= 32 && !fanState) {
       digitalWrite(FAN_RELAY, LOW);
     }
 
     /* Rain sensor */
     delay(10); // short delay before reading
-    // int isRaining = read_rainsensor();
     int isRaining = !digitalRead(RAINSENSOR_PIN);
-    Serial.printf("Is it raining? %d\n", isRaining);
-    if (isRaining && !isRoofClosed) {
+    if (isRaining && !isRoofClosed && servoAngle != 180) {
       // If raining, close the roof
       servo.write(180);
       isRoofClosed = true;
-    } else if (!isRaining && isRoofClosed) {
+    } else if (!isRaining && isRoofClosed && servoAngle != 0) {
       // Not raining, open the roof
       servo.write(0);
       isRoofClosed = false;
@@ -195,9 +199,9 @@ void loop() {
     /* LDR sensor */
     delay(10); // Short delay before reading
     int LDRValue = analogRead(LDR_PIN);
-    if (LDRValue < BRIGHTNESS_THRESHOLD) {
+    if (LDRValue < BRIGHTNESS_THRESHOLD && !ledState) {
       digitalWrite(LED_PIN, HIGH);
-    } else {
+    } else if (LDRValue >= BRIGHTNESS_THRESHOLD && !ledState) {
       digitalWrite(LED_PIN, LOW);
     }
 
