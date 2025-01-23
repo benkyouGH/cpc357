@@ -1,5 +1,6 @@
 # Automated Smart Agriculture System
 
+![Project](/img/projectSetup.jpg)
 The Automated Smart Agriculture System aligns with Sustainable Development Goal (SDG) 12: Responsible Consumption and Production.
 Traditional agriculture systems suffer from inefficiencies due to manual labour and resource wastage.
 Our project aims to address these issues by integrating IoT sensors and actuators to automate the crop management process.
@@ -21,7 +22,7 @@ The following flowchart illustrates the different decisions the system would mak
 
 ![Flowchart](/img/flowchart.png)
 
-Then, the ESP32 sends data to the V-ONE cloud platform through Wi-Fi using the MQTT protocol.
+For communication, he ESP32 sends data to the V-ONE cloud platform through Wi-Fi using the MQTT protocol.
 On the V-ONE cloud platform, the data is processed and stored, where it is then used to perform data visualization on the dashboard, and send notifications to the user.
 
 
@@ -222,7 +223,10 @@ Drag your actuator into the newly created "Control" object.
 Select button or slider for the actuator.
 ![Callback setup 3](/img/callback-setup-3.png)
 
-Then, turn on the button, and the ESP32 should receive the callback, and trigger the actuator.
+
+The resulting monitoring dashboard is shown in the figure below.
+By turning on the button, the ESP32 should receive the callback, and trigger the actuator.
+![Monitoring dashboard](/img/monitoringDashboard.png)
 
 > The callbacks are a feature of the "Monitoring Dashboard", and cannot be implemented in the dashboard built under the "Business Intelligence" menu. Due to this limitation, we had to create 2 separate dashboards.
 
